@@ -60,7 +60,7 @@ public class Persona implements Comparable<Persona>, Serializable {
     public boolean equals(Persona o)
     {
         if (this == o) return true;
-        if (o == null || o.getCodFiscale().equals(this.getCodFiscale())) return false;
+        if (o == null || !o.getCodFiscale().equals(this.getCodFiscale())) return false;
         return Objects.equals(codFiscale, o.codFiscale);
     }
     @Override
