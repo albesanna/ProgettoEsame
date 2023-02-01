@@ -1,9 +1,10 @@
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Objects;
 
 public class Polizza extends Automobile {
     Automobile a;
@@ -14,7 +15,7 @@ public class Polizza extends Automobile {
     private Date dataIniz;
     private Date dataFine;
     private double premioAss;
-    private static SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 
     public Polizza(Persona p, Automobile a, String codicePolizza, Date dataIniz, Date dataFine, double premioAss)
     {
@@ -31,12 +32,10 @@ public class Polizza extends Automobile {
 
 
 
-    @Override
-    public boolean equals(Object o) {
+    public boolean equals(Polizza o) {
         if (this == o) return true;
-        if (o == null || getCodicePolizza()!=this.getCodicePolizza()) return false;
-        Polizza polizza = (Polizza) o;
-        return codicePolizza == polizza.codicePolizza;
+        if (o == null || o.getCodicePolizza().equals(this.getCodicePolizza())) return false;
+        return Objects.equals(codicePolizza, o.codicePolizza);
     }
 
 
@@ -114,7 +113,7 @@ public class Polizza extends Automobile {
     {
         if(a.getP().getCodFiscale().equals(codFiscInt))
         {
-          return "\nPOLIZZA:\n" +
+          return "POLIZZA:\n" +
                   "codicePolizza = " + codicePolizza +
                   " | dataIniz = " + df.format(dataIniz) +
                   " | dataFine = " + df.format(dataFine) +
@@ -127,72 +126,90 @@ public class Polizza extends Automobile {
         }
         else
         {
-            return "\nPOLIZZA:\n" +
+            return "POLIZZA:\n" +
                     "codicePolizza = " + codicePolizza +
                     " | dataIniz = " + df.format(dataIniz) +
                     " | dataFine = " + df.format(dataFine) +
                     " | premioAss = " + premioAss +
                     "\nAUTO RELATIVA A QUESTA POLIZZA:\n" + a.toString() +
-                    "\nINTESTATARIO DELLA POLIZZA:" + p.toString();
+                    "\nINTESTATARIO DELLA POLIZZA: \n" + p.toString();
         }
     }
-    public static ArrayList<Polizza> LeggiPolizza(File filename)
+
+    public static double AggiornaTotPremi(int anno)
     {
-        while(true)
+        double totpremiass = 0;
+        double totprezzoinc = 0;
+        for(Polizza pz : TestIncidenti.Polizze)
         {
+            Calendar c = Calendar.getInstance();
+            c.setTime(pz.getDataIniz());
+            if(c.get(Calendar.YEAR)==anno)
+            {
+                totpremiass += pz.getPremioAss();
+            }
+        }
+        for(Incidente inc : TestIncidenti.Incidenti)
+        {
+            if(inc.getCopertura().equals("si"))
+            {
+                Calendar c = Calendar.getInstance();
+                c.setTime(inc.getDataInc());
+                if(c.get(Calendar.YEAR)==anno)
+                {
+                    totprezzoinc += inc.getImporto();
+                }
+            }
+        }
+        return totpremiass-totprezzoinc;
+    }
+    public static void LeggiPolizza(File filename)
+    {
             try {
                 FileInputStream fis = new FileInputStream(filename);
                 ObjectInputStream ois = new ObjectInputStream(fis);
-                System.out.println("File esistente");
+                System.out.println("File " + filename  + " esistente\n");
                 TestIncidenti.Polizze = (ArrayList<Polizza>) ois.readObject();
-                for (Polizza pz : TestIncidenti.Polizze)
-                {
-                    System.out.println(pz);
-                }
                 ois.close();
-                break;
             } catch (FileNotFoundException e)
             {
-                System.out.print("File non trovato, creazione del nuovo file importando dati da Polizze.txt\n");
+                System.out.println("File \"" + filename + "\" non trovato, creazione del nuovo file\n");
                 try {
                     filename.createNewFile();
-                    FileReader fr = new FileReader("Polizze.txt");
-                    BufferedReader br = new BufferedReader(fr);
+                    System.out.println("File \"" + filename  + "\" creato correttamente\n");
                     FileOutputStream fos = new FileOutputStream(filename);
                     ObjectOutputStream oos = new ObjectOutputStream(fos);
-                    String line;
-                    while((line=br.readLine())!=null)
+                    if(TestIncidenti.Automobili.size()!=0)
                     {
-                        String [] s = line.split(" ");
-                        for(Persona p : TestIncidenti.Persone)
-                        {
-                            if(p.getCodFiscale().equals(s[0]))
-                            {
-                                for(Automobile a : TestIncidenti.Automobili)
-                                {
-                                    if(a.getTarga().equals(s[1]))
-                                    {
-                                        Polizza pz = new Polizza(p, a, s[2], df.parse(s[3]), df.parse(s[4]), Double.parseDouble(s[5]));
-                                        TestIncidenti.Polizze.add(pz);
+                        System.out.println("Inizializzo il file Polizze.dat importando i dati da Polizze.txt");
+                        FileReader fr = new FileReader("Polizze.txt");
+                        BufferedReader br = new BufferedReader(fr);
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            String[] s = line.split(" ");
+                            System.out.println("la stringa è: " + line);
+                            for (Persona p : TestIncidenti.Persone) {
+                                if (p.getCodFiscale().equals(s[0])) {
+                                    for (Automobile a : TestIncidenti.Automobili) {
+                                        if (a.getTarga().equals(s[1])) {
+                                            Polizza pz = new Polizza(p, a, s[2], df.parse(s[3]), df.parse(s[4]), Double.parseDouble(s[5]));
+                                            TestIncidenti.Polizze.add(pz);
+                                        }
                                     }
                                 }
                             }
                         }
+                        System.out.println("\nInserite nel database\n");
                     }
                     oos.writeObject(TestIncidenti.Polizze);
-                    System.out.println("\nInserite nel database\n");
                     oos.flush();
                     oos.close();
                 } catch (IOException | ParseException ex) {
                     System.out.println("File non trovato o errore nel parse");
-                    break;
                 }
             } catch (IOException | ClassNotFoundException e)
             {
                 System.out.println("Errore nel file");
-                break;
             }
-        }
-        return TestIncidenti.Polizze;
     }
 }

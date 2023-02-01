@@ -4,12 +4,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Objects;
+import java.util.Scanner;
+
 public class Automobile extends Persona implements Serializable {
     Persona p;
     private String targa;
     private String codFiscProp;
     private Date dataImm;
-    private static SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 
     public Automobile(Persona p, String targa, Date dataImm)
     {
@@ -50,12 +52,10 @@ public class Automobile extends Persona implements Serializable {
         this.dataImm = dataImm;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    public boolean equals(Automobile o) {
         if (this == o) return true;
-        if (o == null || getTarga()!=this.getTarga()) return false;
-        Automobile that = (Automobile) o;
-        return Objects.equals(targa, that.targa) ;
+        if (o == null || o.getTarga().equals(this.getTarga())) return false;
+        return Objects.equals(targa, o.targa);
     }
 
     @Override
@@ -71,58 +71,62 @@ public class Automobile extends Persona implements Serializable {
         return p;
     }
 
-    public static ArrayList<Automobile> LeggiAutomobili (File filename) {
-        while(true)
-        {
-            try {
+    public static void LeggiAutomobili (File filename) {
+        try {
                 FileInputStream fis = new FileInputStream(filename);
                 ObjectInputStream ois = new ObjectInputStream(fis);
-                System.out.println("File esistente\n");
+                System.out.println("File " + filename  + " esistente\n");
                 TestIncidenti.Automobili = (ArrayList<Automobile>) ois.readObject();
-                for(Automobile r : TestIncidenti.Automobili)
-                {
-                    System.out.println(r + "\n");
-                }
                 ois.close();
-                break;
             } catch (FileNotFoundException e)
             {
-                System.out.println("File non trovato, creazione del nuovo file importando dati da Automobili.txt\n");
+                System.out.println("File \"" + filename + "\" non trovato, creazione del nuovo file\n");
                 try {
                     filename.createNewFile();
-                    FileReader fr = new FileReader("Automobili.txt");
-                    BufferedReader br = new BufferedReader(fr);
+                    System.out.println("File \"" + filename  + "\" creato correttamente\n");
                     FileOutputStream fos = new FileOutputStream(filename, true);
                     ObjectOutputStream oos = new ObjectOutputStream(fos);
-                    String line;
-                    while((line=br.readLine())!=null)
+                    if(TestIncidenti.Persone.size()!=0)
                     {
-                        String [] s = line.split(" ");
-                        System.out.println("la stringa è: " + line);
-                        for(Persona p : TestIncidenti.Persone)
+                        System.out.println("Come inizializzare il nuovo file Automobili.dat?");
+                        System.out.println("1 -> Importando automaticamente le auto dal file Automobili.txt gia esistente");
+                        System.out.println("2 -> Inserendo le automobili (e di conseguenza le rispettive polizze) in seguito");
+                        System.out.print("Azione da eseguire: ");
+                        Scanner sc = new Scanner(System.in);
+                        int i = sc.nextInt();
+                        switch(i)
                         {
-                            if(p.getCodFiscale().equals(s[0]))
-                            {
-                                Automobile a = new Automobile(p, s[1], df.parse(s[2]));
-                                TestIncidenti.Automobili.add(a);
-                            }
+                            case 1:
+                                FileReader fr = new FileReader("Automobili.txt");
+                                BufferedReader br = new BufferedReader(fr);
+                                String line;
+                                while ((line = br.readLine()) != null)
+                                {
+                                    String[] s = line.split(" ");
+                                    System.out.println("la stringa è: " + line);
+                                    for (Persona p : TestIncidenti.Persone) {
+                                        if (p.getCodFiscale().equals(s[0])) {
+                                            Automobile a = new Automobile(p, s[1], df.parse(s[2]));
+                                            TestIncidenti.Automobili.add(a);
+                                        }
+                                    }
+                                }
+                                System.out.println("\nInserite nel database\n");
+                                break;
+                            case 2:
+                                break;
                         }
                     }
                     oos.writeObject(TestIncidenti.Automobili);
-                    System.out.println("\nInserite nel database\n");
                     oos.flush();
                     oos.close();
                 } catch (IOException | ParseException ex)
                 {
                     System.out.println("File non trovato o errore nel parse");
-                    break;
                 }
             } catch (ClassNotFoundException | IOException e)
             {
                 System.out.println("Errore nel file");
-                break;
             }
-        }
-        return TestIncidenti.Automobili;
     }
 }
